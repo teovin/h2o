@@ -20,7 +20,7 @@ services:
       dockerfile: ./docker/Dockerfile
       x-bake:
         tags:
-          - registry.lil.tools/harvardlil/h2o-python:0.112-a775d7c47333bed7721520e54c5ac67d
+          - registry.lil.tools/harvardlil/h2o-python:0.113-2d5936f257d5360e756eb366b19e2571
         platforms:
           - linux/amd64
           - linux/arm64
