@@ -1656,7 +1656,7 @@ class ContentNode(
             return rich_text_export(self.resource.content, request=request, id_prefix=str(self.id))
         return self.resource.content
 
-    def get_ali_license_text(self) -> str:
+    def get_ali_license_text(self):
         licensed_materials = [
             {
                 "title": "Restatements of the Law",
