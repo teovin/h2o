@@ -1503,6 +1503,9 @@ class ContentNode(
         help_text="This content should only be made available on the front end to verified professors",
     )
 
+    # Indicates whether node includes material licensed by the American Law Institute
+    ali_licensed = models.BooleanField(default=False)
+
     @classmethod
     def nodes_for_user_by_casebook(
         cls,
@@ -1652,6 +1655,34 @@ class ContentNode(
         elif self.resource_type == "TextBlock":
             return rich_text_export(self.resource.content, request=request, id_prefix=str(self.id))
         return self.resource.content
+    
+    def get_ali_license_text(self) -> str:
+        licensed_materials = [
+            {
+                "title": "Restatements of the Law",
+                "copyright_year": 2014,
+                "match_words": ["restatement", "restatements", "contracts", "restatements of the law"]
+            },
+            {
+                "title": "Principles of the Law",
+                "copyright_year": 2015,
+                "match_words": ["principle", "principles", "principles of the law"]
+            },
+            {
+                "title": "Model Penal Code",
+                "copyright_year": 2016,
+                "match_words": ["model penal code", "mpc"]
+            }
+        ]
+
+        license_txt = ''
+        title = self.title.lower()
+
+        for item in licensed_materials:
+            if any(word.lower() in title.split() for word in item["match_words"]):
+                license_txt = (f"{item['title']}, copyright @ {item['copyright_year']} by the American Law Institute. "
+                               f"Reproduced with permission, not as part of a Creative Commons license.")
+        return license_txt
 
     @property
     def is_temporary(self):
@@ -1765,6 +1796,7 @@ class ContentNode(
         """
         cleanse_html_field(self, "headnote", True)
         self.headnote_doc_class = self.identify_headnote_type()
+        self.ali_licensed = bool(self.get_ali_license_text())
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):

@@ -2132,6 +2132,7 @@ class SectionView(View):
             {
                 "casebook": casebook,
                 "section": section,
+                "ali_license": section.get_ali_license_text(),
                 "tabs": section.tabs_for_user(request.user),
                 "casebook_color_class": casebook.casebook_color_indicator,
                 "edit_mode": casebook.directly_editable_by(request.user),
@@ -2378,6 +2379,7 @@ class ResourceView(View):
             {
                 "casebook": casebook,
                 "section": section,
+                "ali_license": section.get_ali_license_text(),
                 "body_json": body_json,
                 "contents": section,
                 "include_vuejs": section.annotatable,

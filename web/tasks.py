@@ -465,3 +465,17 @@ def export_node(
     print(
         f"Generated export file ({filesizeformat(len(file_contents))}) in {round(after-before,2)} seconds."
     )
+
+
+@task
+@setup_django
+def populate_ali_licensed(ctx):
+    """
+    Retroactively update ContentNode's 'ali_licensed' field
+    """
+    from main.models import ContentNode
+
+    for node in ContentNode.objects.all():
+        if node.get_ali_license_text():
+            node.ali_licensed = True
+            node.save()
