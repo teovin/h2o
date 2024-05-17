@@ -1684,7 +1684,7 @@ class ContentNode(
         title = self.title.lower()
 
         for item in licensed_materials:
-            if any(word.lower() in title.split() for word in item["match_words"]):
+            if any(word.lower() in title for word in item["match_words"]):
                 license_txt = (
                     f"{item['title']}, copyright @ {item['copyright_year']} by the American Law Institute. "
                     f"Reproduced with permission, not as part of a Creative Commons license."
