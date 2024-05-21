@@ -478,4 +478,4 @@ def populate_ali_licensed(ctx):
     for node in ContentNode.objects.all():
         if node.get_ali_license_text():
             node.ali_licensed = True
-            node.save()
+            node.save(update_fields=["ali_licensed"])

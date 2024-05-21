@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
+import json
 from datetime import datetime
 from enum import Enum
 from os.path import commonprefix
@@ -1657,38 +1658,19 @@ class ContentNode(
         return self.resource.content
 
     def get_ali_license_text(self):
-        licensed_materials = [
-            {
-                "title": "Restatements of the Law",
-                "copyright_year": 2014,
-                "match_words": [
-                    "restatement",
-                    "restatements",
-                    "contracts",
-                    "restatements of the law",
-                ],
-            },
-            {
-                "title": "Principles of the Law",
-                "copyright_year": 2015,
-                "match_words": ["principle", "principles", "principles of the law"],
-            },
-            {
-                "title": "Model Penal Code",
-                "copyright_year": 2016,
-                "match_words": ["model penal code", "mpc"],
-            },
-        ]
+        with open(f"{settings.STATIC_ROOT}/data/ali_materials.json", "r") as file:
+            licensed_materials = json.load(file)
 
-        license_txt = ""
         title = self.title.lower()
+        license_txt = ""
 
         for item in licensed_materials:
-            if any(word.lower() in title for word in item["match_words"]):
+            if all(word in title for word in item["match_words"]):
                 license_txt = (
-                    f"{item['title']}, copyright @ {item['copyright_year']} by the American Law Institute. "
+                    f"{item['title']}, copyright @ {item['years']} by the American Law Institute. "
                     f"Reproduced with permission, not as part of a Creative Commons license."
                 )
+
         return license_txt
 
     @property
