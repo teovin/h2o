@@ -1503,6 +1503,9 @@ class ContentNode(
         help_text="This content should only be made available on the front end to verified professors",
     )
 
+    # Indicates whether node includes material licensed by the American Law Institute
+    ali_licensed = models.BooleanField(default=False)
+
     @classmethod
     def nodes_for_user_by_casebook(
         cls,
@@ -1653,6 +1656,39 @@ class ContentNode(
             return rich_text_export(self.resource.content, request=request, id_prefix=str(self.id))
         return self.resource.content
 
+    def get_ali_license_text(self):
+        """Returns custom license text if title contains all items of the match_words list
+
+        >>> node = getfixture('content_node')
+        >>> # title including both items in the form of single word strings
+        >>> node.title = 'Restatement (Third) of Property (Servitudes) Notes and Questions'
+        >>> assert node.get_ali_license_text() == 'Restatement of the Law, Property, copyright @ 1977-2023 by the American Law Institute. Reproduced with permission, not as part of a Creative Commons license.'
+        >>> # title including both items in the form of one single word string and one multi-word string
+        >>> node.title = 'Excerpts from Restatement (First) and (Second) of Conflict of Laws'
+        >>> assert node.get_ali_license_text() == 'Restatement of the Law, Conflict of Laws, copyright @ 1971-2023 by the American Law Institute. Reproduced with permission, not as part of a Creative Commons license.'
+        >>> # title including both items in the form of two multi-word strings in lower case
+        >>> node.title = 'section from model penal code sexual assault and related offenses publication'
+        >>> assert node.get_ali_license_text() == 'Model Penal Code, Sexual Assault and Related Offenses, copyright @ 2021-2022 by the American Law Institute. Reproduced with permission, not as part of a Creative Commons license.'
+        >>> # title that only includes one of the words
+        >>> node.title = 'section from the principles of law publications'
+        >>> assert node.get_ali_license_text() == ''
+        >>> # title that doesn't include any of the words
+        >>> node.title = 'Text that does not include any of the match words'
+        >>> assert node.get_ali_license_text() == ''
+        """
+
+        title = self.title.lower()
+        license_txt = ""
+
+        for item in settings.ALI_MATERIALS:
+            if all(word in title for word in item["match_words"]):
+                license_txt = (
+                    f"{item['title']}, copyright @ {item['years']} by the American Law Institute. "
+                    f"Reproduced with permission, not as part of a Creative Commons license."
+                )
+                break
+        return license_txt
+
     @property
     def is_temporary(self):
         return self.resource_type == "Temp"
@@ -1765,6 +1801,7 @@ class ContentNode(
         """
         cleanse_html_field(self, "headnote", True)
         self.headnote_doc_class = self.identify_headnote_type()
+        self.ali_licensed = bool(self.get_ali_license_text())
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):

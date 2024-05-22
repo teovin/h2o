@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 
 import os
 from typing import Any, TypedDict
+import json
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 ALLOWED_HOSTS: list[str] = []
@@ -299,3 +300,10 @@ SENTRY_TRACES_SAMPLE_RATE = 1.0
 SENTRY_SEND_DEFAULT_PII = False
 
 COVER_IMAGES = False
+
+# Load ali materials
+try:
+    with open(f"{STATIC_ROOT}/data/ali_materials.json", "r") as file:
+        ALI_MATERIALS = json.load(file)
+except FileNotFoundError as fileNotFoundError:
+    print("Error opening file.", fileNotFoundError)

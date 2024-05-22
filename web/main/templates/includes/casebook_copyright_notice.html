@@ -3,8 +3,11 @@
     for sharing and re-use with the exception of certain excerpts.
 
 
-    {# TODO make this dynamic in response to this casebook's content #}
     <span class="ali-license">
+    {% if section.ali_licensed %}
+            {{ section.get_ali_license_text }}
+    {% else %}
         Any excerpts from the <i>Restatements of the Law</i>, <i>Principles of the Law</i>, and the <i>Model Penal Code</i> are copyright by The American Law Institute. Excerpts are reproduced with permission, not as part of a Creative Commons license.
+    {% endif %}
     </span>
 </p>
