@@ -475,7 +475,8 @@ def populate_ali_licensed(ctx):
     """
     from main.models import ContentNode
 
-    for node in ContentNode.objects.all():
-        if node.get_ali_license_text():
-            node.ali_licensed = True
+    for node in tqdm(ContentNode.objects.iterator()):
+        is_licensed = bool(node.get_ali_license_text())
+        if node.ali_licensed is not is_licensed:
+            node.ali_licensed = is_licensed
             node.save(update_fields=["ali_licensed"])
