@@ -305,5 +305,5 @@ COVER_IMAGES = False
 try:
     with open(f"{STATIC_ROOT}/data/ali_materials.json", "r") as file:
         ALI_MATERIALS = json.load(file)
-except FileNotFoundError as e:
-    print("Error opening file.", e)
+except FileNotFoundError as fileNotFoundError:
+    print("Error opening file.", fileNotFoundError)

@@ -685,11 +685,6 @@ def legal_doc(legal_document_factory):
 
 
 @pytest.fixture
-def content_node(content_node_factory):
-    return content_node_factory()
-
-
-@pytest.fixture
 def capapi_mock(requests_mock):
     """
     Mock responses for queries run by CAP import functions.
