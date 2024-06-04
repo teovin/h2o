@@ -557,7 +557,7 @@ class CourtListener:
             results.append(
                 {
                     "fullName": r["caseName"],
-                    "shortName": r["caseName"],
+                    "shortName": truncate_name(r["caseName"]),
                     "fullCitations": ", ".join(r["citation"]) if r["citation"] else "",
                     "shortCitations": (
                         ", ".join(r["citation"][:3]) + ("..." if len(r["citation"]) > 3 else "")
