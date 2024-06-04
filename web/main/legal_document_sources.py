@@ -14,7 +14,12 @@ from django.conf import settings
 from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
 from pyquery import PyQuery
 
-from main.utils import APICommunicationError, looks_like_case_law_link, looks_like_citation
+from main.utils import (
+    APICommunicationError,
+    looks_like_case_law_link,
+    looks_like_citation,
+    convert_case_xml_to_html,
+)
 
 vs_check = re.compile(" [vV][sS]?[.]? ")
 
@@ -553,12 +558,15 @@ class CourtListener:
                 {
                     "fullName": r["caseName"],
                     "shortName": r["caseName"],
-                    "fullCitations": ", ".join(r["citation"]),
-                    "shortCitations": ", ".join(r["citation"][:3])
-                    + ("..." if len(r["citation"]) > 3 else ""),
-                    "effectiveDate": parser.isoparse(r["dateFiled"]).strftime("%Y-%m-%d"),
+                    "fullCitations": ", ".join(r["citation"]) if r["citation"] else "",
+                    "shortCitations": (
+                        ", ".join(r["citation"][:3]) + ("..." if len(r["citation"]) > 3 else "")
+                        if r["citation"]
+                        else ""
+                    ),
+                    "effectiveDate": parser.isoparse(r["dateFiled"][:25]).strftime("%Y-%m-%d"),
                     "url": f"{settings.COURTLISTENER_BASE_URL}{r['absolute_url']}",
-                    "id": r["id"],
+                    "id": r["cluster_id"],
                 }
             )
         return results
@@ -576,31 +584,40 @@ class CourtListener:
             )
             resp.raise_for_status()
             cluster = resp.json()
-            resp = requests.get(
-                f"{settings.COURTLISTENER_BASE_URL}/api/rest/v3/opinions/{id}/",
-                headers={"Authorization": f"Token {settings.COURTLISTENER_API_KEY}"},
-            )
-            resp.raise_for_status()
 
-            opinion = resp.json()
+            if cluster["filepath_json_harvard"]:
+                harvard_xml_data = ""
+                for sub_opinion in cluster["sub_opinions"]:
+                    opinion = CourtListener.get_opinion_body(sub_opinion)
+                    if opinion["xml_harvard"]:
+                        opinion_xml = opinion["xml_harvard"].replace(
+                            '<?xml version="1.0" encoding="utf-8"?>', ""
+                        )
+                        harvard_xml_data += f"{opinion_xml}\n"
+                case_html = CourtListener.prepare_case_html(cluster, harvard_xml_data)
+            else:
+                opinion = CourtListener.get_opinion_body(cluster["sub_opinions"][0])
+                case_html = opinion["html"] if opinion["html"] else opinion["plain_text"]
 
         except requests.exceptions.HTTPError as e:
             msg = f"Failed call to {resp.request.url}: {e}\n{resp.content}"
             raise APICommunicationError(msg)
 
-        body = opinion["html"]
+        citations = [
+            f"{x.get('volume')} {x.get('reporter')} {x.get('page')}" for x in cluster["citations"]
+        ]
         case = LegalDocument(
             source=legal_doc_source,
             short_name=cluster["case_name"],
             name=cluster["case_name"],
             doc_class="Case",
-            citations=cluster["citations"],
+            citations=citations,
             jurisdiction="",
             effective_date=cluster["date_filed"],
             publication_date=cluster["date_filed"],
             updated_date=datetime.now(),
             source_ref=str(id),
-            content=body,
+            content=case_html,
             metadata=None,
         )
         return case
@@ -608,6 +625,27 @@ class CourtListener:
     @staticmethod
     def header_template(legal_document):
         return "empty_header.html"
+
+    @staticmethod
+    def get_opinion_body(sub_opinion_url):
+        opinion_num = int(sub_opinion_url.split("/")[-2])
+        resp = requests.get(
+            f"{settings.COURTLISTENER_BASE_URL}/api/rest/v3/opinions/{opinion_num}/",
+            headers={"Authorization": f"Token {settings.COURTLISTENER_API_KEY}"},
+        )
+
+        resp.raise_for_status()
+        return resp.json()
+
+    @staticmethod
+    def prepare_case_html(cluster, opinions_xml):
+        xml_declaration = (
+            "<?xml version='1.0' encoding='utf-8'?>\n"
+            "<casebody xmlns='http://nrs.harvard.edu/urn-3:HLS.Libr.US_Case_Law.Schema.Case_Body:v1' "
+            "firstpage='0' lastpage='0'>"
+        )
+        case_xml = f"{xml_declaration}\n{cluster['headmatter']}\n{opinions_xml}</casebody>"
+        return convert_case_xml_to_html(case_xml)
 
 
 class LegacyNoSearch:
