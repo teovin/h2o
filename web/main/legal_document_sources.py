@@ -537,11 +537,7 @@ class CourtListener:
         if not settings.COURTLISTENER_API_KEY:
             raise APICommunicationError("A CourtListener API key is required")
         try:
-            params = (
-                {"citation": search_params.q}
-                if looks_like_citation(search_params.q)
-                else {"q": search_params.q}
-            )
+            params = CourtListener.cl_params(search_params)
             resp = requests.get(
                 f"{settings.COURTLISTENER_BASE_URL}/api/rest/v3/search",
                 params,
@@ -647,6 +643,21 @@ class CourtListener:
         )
         case_xml = f"{xml_declaration}\n{cluster['headmatter']}\n{opinions_xml}</casebody>"
         return convert_case_xml_to_html(case_xml)
+
+    @staticmethod
+    def cl_params(search_params):
+        search_type_param = (
+            {"citation": search_params.q}
+            if looks_like_citation(search_params.q)
+            else {"q": search_params.q}
+        )
+        search_params = {
+            "filed_after": search_params.after_date,
+            "filed_before": search_params.before_date,
+            "court": search_params.jurisdiction,
+        }
+        params = {**search_type_param, **search_params}
+        return {k: params[k] for k in params.keys() if params[k] is not None}
 
 
 class LegacyNoSearch:
