@@ -524,8 +524,8 @@ class USCodeGPO:
 class CourtListener:
     details = {
         "name": "CourtListener",
-        "short_description": "hello",
-        "long_description": "CourtListener searches millions of opinions across hundreds of jurisdictions",
+        "short_description": "CourtListener contains millions of legal opinions.",
+        "long_description": "CourtListener searches millions of opinions across hundreds of jurisdictions.",
         "link": settings.COURTLISTENER_BASE_URL,
         "search_regexes": [],
         "footnote_regexes": [],
@@ -584,6 +584,7 @@ class CourtListener:
             )
             resp.raise_for_status()
             cluster = resp.json()
+            cluster["html_info"] = {"source": "court listener"}
 
             if cluster["filepath_json_harvard"]:
                 harvard_xml_data = ""
@@ -608,17 +609,17 @@ class CourtListener:
         ]
         case = LegalDocument(
             source=legal_doc_source,
-            short_name=cluster["case_name"],
-            name=cluster["case_name"],
+            short_name=cluster.get("case_name"),
+            name=cluster.get("case_name"),
             doc_class="Case",
             citations=citations,
-            jurisdiction="",
-            effective_date=cluster["date_filed"],
-            publication_date=cluster["date_filed"],
+            jurisdiction=cluster.get("court_id"),
+            effective_date=parser.parse(cluster.get("date_filed")),
+            publication_date=parser.parse(cluster.get("date_modified")),
             updated_date=datetime.now(),
             source_ref=str(id),
             content=case_html,
-            metadata=None,
+            metadata=cluster,
         )
         return case
 
