@@ -675,10 +675,10 @@ class CourtListener:
             "<otherdate": '<p class="otherdate"',
             "<decisiondate": '<p class="decisiondate"',
             "<attorneys": '<p class="attorneys"',
-            "</docketnumber>": "</h4>",
-            "</otherdate>": "</h4>",
-            "</decisiondate>": "</h4>",
-            "</attorneys>": "</h4>",
+            "</docketnumber>": "</p>",
+            "</otherdate>": "</p>",
+            "</decisiondate>": "</p>",
+            "</attorneys>": "</p>",
             "<br>": "",
         }
 
