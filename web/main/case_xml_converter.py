@@ -2,8 +2,6 @@
 Convert between XML and HTML versions of CAP's formatted case data.
 """
 
-from pprint import pprint
-
 import lxml.sax
 import lxml.html
 import xml.sax
@@ -81,7 +79,7 @@ class XmlToHtmlHandler(xml.sax.ContentHandler):
                         "a",
                         {
                             "id": "p" + label,
-                            "href": f"#p" + label,
+                            "href": f"#p{label}",
                             "data-label": label,
                             "data-citation-index": attrs["citation-index"],
                             "class": "page-label",
