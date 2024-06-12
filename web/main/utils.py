@@ -745,10 +745,3 @@ def validate_image(file, formats=None):
         Image.open(file, formats=formats)
     except UnidentifiedImageError:
         raise BadFiletypeError(f"Only {', '.join(formats)} are supported at this time.")
-
-
-def convert_case_xml_to_html(xml):
-    """
-    The script to convert xml to html will go here
-    """
-    return "html"
