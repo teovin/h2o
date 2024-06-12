@@ -13,12 +13,12 @@ from dateutil import parser
 from django.conf import settings
 from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
 from pyquery import PyQuery
+from .case_xml_converter import xml_to_html
 
 from main.utils import (
     APICommunicationError,
     looks_like_case_law_link,
     looks_like_citation,
-    convert_case_xml_to_html,
 )
 
 vs_check = re.compile(" [vV][sS]?[.]? ")
@@ -641,14 +641,17 @@ class CourtListener:
             "<casebody xmlns='http://nrs.harvard.edu/urn-3:HLS.Libr.US_Case_Law.Schema.Case_Body:v1' "
             "firstpage='0' lastpage='0'>"
         )
-        case_xml = f"{xml_declaration}\n{opinions_xml}</casebody>"
-        converted_case_html = convert_case_xml_to_html(case_xml)
-        formatted_headmatter_html = CourtListener.format_headmatter(cluster["headmatter"])
+        case_xml = f"{xml_declaration}\n{cluster['headmatter']}\n{opinions_xml}</casebody>"
+        # mismatched tag error workaround
+        case_xml = case_xml.replace("<br>", "")
 
-        if formatted_headmatter_html:
-            return formatted_headmatter_html + converted_case_html
-        else:
-            return converted_case_html
+        try:
+            converted_case_html = xml_to_html(case_xml, str(cluster["id"]))
+        except Exception as e:
+            msg = f"Error converting xml to html: {e}"
+            raise Exception(msg)
+
+        return converted_case_html
 
     @staticmethod
     def cl_params(search_params):
@@ -664,33 +667,6 @@ class CourtListener:
         }
         params = {**search_type_param, **search_params}
         return {k: params[k] for k in params.keys() if params[k] is not None}
-
-    @staticmethod
-    def format_headmatter(headmatter_str):
-        replacements = {
-            "\n": "",
-            "<parties": '<h4 class="parties"',
-            "</parties>": "</h4>",
-            "<docketnumber": '<p class="docketnumber"',
-            "<otherdate": '<p class="otherdate"',
-            "<decisiondate": '<p class="decisiondate"',
-            "<attorneys": '<p class="attorneys"',
-            "</docketnumber>": "</p>",
-            "</otherdate>": "</p>",
-            "</decisiondate>": "</p>",
-            "</attorneys>": "</p>",
-            "<br>": "",
-        }
-
-        try:
-            pattern = "|".join(replacements.keys())
-            cleaned_headmatter = re.sub(
-                pattern, lambda match: replacements[match.group(0)], headmatter_str
-            )
-        except TypeError:
-            cleaned_headmatter = None
-
-        return cleaned_headmatter
 
 
 class LegacyNoSearch:
