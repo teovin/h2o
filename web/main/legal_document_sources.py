@@ -603,10 +603,18 @@ class CourtListener:
             f"{x.get('volume')} {x.get('reporter')} {x.get('page')}" for x in cluster["citations"]
         ]
         cluster["html_info"] = {"source": "court listener"}
+
+        # https://www.courtlistener.com/help/api/rest/#case-names
+        case_name = None
+        if cluster["case_name"]:
+            case_name = cluster["case_name"]
+        elif cluster["case_name_full"]:
+            case_name = cluster["case_name_full"][:10000]
+
         case = LegalDocument(
             source=legal_doc_source,
             short_name=cluster.get("case_name"),
-            name=cluster.get("case_name"),
+            name=case_name,
             doc_class="Case",
             citations=citations,
             jurisdiction=cluster.get("court_id"),
