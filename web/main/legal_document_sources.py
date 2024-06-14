@@ -580,7 +580,6 @@ class CourtListener:
             )
             resp.raise_for_status()
             cluster = resp.json()
-            cluster["html_info"] = {"source": "court listener"}
 
             if cluster["filepath_json_harvard"]:
                 harvard_xml_data = ""
@@ -603,6 +602,7 @@ class CourtListener:
         citations = [
             f"{x.get('volume')} {x.get('reporter')} {x.get('page')}" for x in cluster["citations"]
         ]
+        cluster["html_info"] = {"source": "court listener"}
         case = LegalDocument(
             source=legal_doc_source,
             short_name=cluster.get("case_name"),
@@ -642,13 +642,13 @@ class CourtListener:
             "firstpage='0' lastpage='0'>"
         )
         case_xml = f"{xml_declaration}\n{cluster['headmatter']}\n{opinions_xml}</casebody>"
-        # mismatched tag error workaround
-        case_xml = case_xml.replace("<br>", "")
+        # 'mismatched br tag' and 'invalid attribute https:' error workarounds
+        case_xml = case_xml.replace("<br>", "").replace('https:=""', "")
 
         try:
             converted_case_html = xml_to_html(case_xml, str(cluster["id"]))
         except Exception as e:
-            msg = f"Error converting xml to html: {e}"
+            msg = f"Error converting xml to html for case {cluster['id']}: {e}"
             raise Exception(msg)
 
         return converted_case_html

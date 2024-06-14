@@ -67,8 +67,10 @@ class XmlToHtmlHandler(xml.sax.ContentHandler):
         elif name == "opinion":
             if self.head_matter_open:
                 self.close_head_matter()
+            # set opinion type to 'none' for opinions that don't have 'type' in source xml
+            attr_type = attrs.get("type", "none")
             self.tag_stack.append(
-                (sax_start, ("article", {"class": "opinion", "data-type": attrs["type"]}))
+                (sax_start, ("article", {"class": "opinion", "data-type": attr_type}))
             )
         elif name == "page-number":
             label = attrs["label"]
@@ -111,7 +113,9 @@ class XmlToHtmlHandler(xml.sax.ContentHandler):
             "blockquote",
         ):
             # content element
-            attrs = {"id": attrs["id"]}
+            # set id to 'none' for elements that don't have 'id' in source xml
+            attrs_id = attrs.get("id", "none")
+            attrs = {"id": attrs_id}
             if "data-blocks" in attrs:
                 attrs["data-blocks"] = attrs["data-blocks"]
             if name not in ("p", "blockquote"):
