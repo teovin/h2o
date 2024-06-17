@@ -605,7 +605,7 @@ class CourtListener:
         cluster["html_info"] = {"source": "court listener"}
 
         # https://www.courtlistener.com/help/api/rest/#case-names
-        case_name = None
+        case_name = ""
         if cluster["case_name"]:
             case_name = cluster["case_name"]
         elif cluster["case_name_full"]:
