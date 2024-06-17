@@ -645,9 +645,7 @@ class CourtListener:
     @staticmethod
     def prepare_case_html(cluster, opinions_xml):
         xml_declaration = (
-            "<?xml version='1.0' encoding='utf-8'?>\n"
-            "<casebody xmlns='http://nrs.harvard.edu/urn-3:HLS.Libr.US_Case_Law.Schema.Case_Body:v1' "
-            "firstpage='0' lastpage='0'>"
+            "<?xml version='1.0' encoding='utf-8'?>\n<casebody firstpage='0' lastpage='0'>"
         )
         case_xml = f"{xml_declaration}\n{cluster['headmatter']}\n{opinions_xml}</casebody>"
         # 'mismatched br tag' and 'invalid attribute https:' error workarounds
