@@ -580,6 +580,7 @@ class CourtListener:
             )
             resp.raise_for_status()
             cluster = resp.json()
+            cluster["html_info"] = {"source": "court listener"}
 
             if cluster["filepath_json_harvard"]:
                 harvard_xml_data = ""
@@ -591,9 +592,15 @@ class CourtListener:
                         )
                         harvard_xml_data += f"{opinion_xml}\n"
                 case_html = CourtListener.prepare_case_html(cluster, harvard_xml_data)
+                cluster["html_info"]["source_field"] = "xml_harvard"
             else:
                 opinion = CourtListener.get_opinion_body(cluster["sub_opinions"][0])
-                case_html = opinion["html"] if opinion["html"] else opinion["plain_text"]
+                if opinion["html"]:
+                    case_html = opinion["html"]
+                    cluster["html_info"]["source_field"] = "html"
+                else:
+                    case_html = opinion["plain_text"]
+                    cluster["html_info"]["source_field"] = "plain_text"
 
         except requests.exceptions.HTTPError as e:
             msg = f"Failed call to {resp.request.url}: {e}\n{resp.content}"
@@ -602,14 +609,9 @@ class CourtListener:
         citations = [
             f"{x.get('volume')} {x.get('reporter')} {x.get('page')}" for x in cluster["citations"]
         ]
-        cluster["html_info"] = {"source": "court listener"}
 
         # https://www.courtlistener.com/help/api/rest/#case-names
-        case_name = ""
-        if cluster["case_name"]:
-            case_name = cluster["case_name"]
-        elif cluster["case_name_full"]:
-            case_name = cluster["case_name_full"][:10000]
+        case_name = cluster["case_name"] or cluster["case_name_full"][:10000]
 
         case = LegalDocument(
             source=legal_doc_source,
