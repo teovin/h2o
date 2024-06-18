@@ -13,7 +13,7 @@ from dateutil import parser
 from django.conf import settings
 from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
 from pyquery import PyQuery
-from .case_xml_converter import xml_to_html
+from main.case_xml_converter import xml_to_html
 
 from main.utils import (
     APICommunicationError,
@@ -537,7 +537,7 @@ class CourtListener:
         if not settings.COURTLISTENER_API_KEY:
             raise APICommunicationError("A CourtListener API key is required")
         try:
-            params = CourtListener.cl_params(search_params)
+            params = CourtListener.get_search_params(search_params)
             resp = requests.get(
                 f"{settings.COURTLISTENER_BASE_URL}/api/rest/v3/search",
                 params,
@@ -660,7 +660,7 @@ class CourtListener:
         return converted_case_html
 
     @staticmethod
-    def cl_params(search_params):
+    def get_search_params(search_params):
         search_type_param = (
             {"citation": search_params.q}
             if looks_like_citation(search_params.q)
