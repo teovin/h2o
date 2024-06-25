@@ -581,6 +581,7 @@ class CourtListener:
             resp.raise_for_status()
             cluster = resp.json()
             cluster["html_info"] = {"source": "court listener"}
+            cluster["sub_opinions"].sort(key=lambda x: int(x.split("/")[-2]))
 
             if cluster["filepath_json_harvard"]:
                 harvard_xml_data = ""
