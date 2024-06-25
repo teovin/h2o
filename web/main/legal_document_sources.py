@@ -581,28 +581,28 @@ class CourtListener:
             resp.raise_for_status()
             cluster = resp.json()
             cluster["html_info"] = {"source": "court listener"}
-            cluster["sub_opinions"].sort(key=lambda x: int(x.split("/")[-2]))
+            cluster["sub_opinions"].sort(key=lambda url: int(url.split("/")[-2]))
 
-            if cluster["filepath_json_harvard"]:
-                harvard_xml_data = ""
-                for sub_opinion in cluster["sub_opinions"]:
-                    opinion = CourtListener.get_opinion_body(sub_opinion)
-                    if opinion["xml_harvard"]:
-                        opinion_xml = opinion["xml_harvard"].replace(
-                            '<?xml version="1.0" encoding="utf-8"?>', ""
-                        )
-                        harvard_xml_data += f"{opinion_xml}\n"
-                case_html = CourtListener.prepare_case_html(cluster, harvard_xml_data)
-                cluster["html_info"]["source_field"] = "xml_harvard"
-            else:
-                opinion = CourtListener.get_opinion_body(cluster["sub_opinions"][0])
-                if opinion["html"]:
-                    case_html = opinion["html"]
-                    cluster["html_info"]["source_field"] = "html"
-                else:
-                    case_html = opinion["plain_text"]
-                    cluster["html_info"]["source_field"] = "plain_text"
+            sub_opinion_jsons = []
+            for opinion in cluster["sub_opinions"]:
+                sub_opinion_jsons.append(CourtListener.get_opinion_body(opinion))
 
+            text_source = ""
+            for content_type in ("xml_harvard", "html", "plain_text"):
+                case_text = "".join(sub_opinion[content_type] for sub_opinion in sub_opinion_jsons)
+                if case_text:
+                    case_text = case_text.replace('<?xml version="1.0" encoding="utf-8"?>', "")
+                    text_source = content_type
+                    break
+
+            if not case_text:
+                msg = f"Case text not found for cluster {id}"
+                raise Exception(msg)
+
+            if text_source == "xml_harvard":
+                case_text = CourtListener.prepare_case_html(cluster, case_text)
+
+            cluster["html_info"]["source_field"] = text_source
             additional_metadata = (CourtListener.get_additional_cluster_metadata(id))["results"][0]
 
         except requests.exceptions.HTTPError as e:
@@ -629,9 +629,10 @@ class CourtListener:
             publication_date=parser.parse(cluster.get("date_modified")),
             updated_date=datetime.now(),
             source_ref=str(id),
-            content=case_html,
+            content=case_text,
             metadata=cluster,
         )
+
         return case
 
     @staticmethod
