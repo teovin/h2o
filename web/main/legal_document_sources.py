@@ -602,6 +602,8 @@ class CourtListener:
                     case_html = opinion["plain_text"]
                     cluster["html_info"]["source_field"] = "plain_text"
 
+            additional_metadata = (CourtListener.get_additional_cluster_metadata(id))["results"][0]
+
         except requests.exceptions.HTTPError as e:
             msg = f"Failed call to {resp.request.url}: {e}\n{resp.content}"
             raise APICommunicationError(msg)
@@ -612,6 +614,8 @@ class CourtListener:
 
         # https://www.courtlistener.com/help/api/rest/#case-names
         case_name = cluster["case_name"] or cluster["case_name_full"][:10000]
+        cluster["court"] = {"name": additional_metadata.get("court")}
+        cluster["docket_number"] = additional_metadata.get("docketNumber")
 
         case = LegalDocument(
             source=legal_doc_source,
@@ -631,7 +635,7 @@ class CourtListener:
 
     @staticmethod
     def header_template(legal_document):
-        return "empty_header.html"
+        return "court_listener_header.html"
 
     @staticmethod
     def get_opinion_body(sub_opinion_url):
@@ -675,6 +679,23 @@ class CourtListener:
         }
         params = {**search_type_param, **search_params}
         return {k: params[k] for k in params.keys() if params[k] is not None}
+
+    @staticmethod
+    def get_additional_cluster_metadata(cluster_id):
+        """
+        Additional metadata about a cluster such as court and docket number are available in search endpoint
+        Instead of clusters endpoint
+        """
+        params = {"q": f"cluster_id:{cluster_id}"}
+
+        resp = requests.get(
+            f"{settings.COURTLISTENER_BASE_URL}/api/rest/v3/search",
+            params,
+            headers={"Authorization": f"Token {settings.COURTLISTENER_API_KEY}"},
+        )
+
+        resp.raise_for_status()
+        return resp.json()
 
 
 class LegacyNoSearch:
