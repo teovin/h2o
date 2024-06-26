@@ -588,7 +588,15 @@ class CourtListener:
                 sub_opinion_jsons.append(CourtListener.get_opinion_body(opinion))
 
             text_source = ""
-            for content_type in ("xml_harvard", "html", "plain_text"):
+            for content_type in (
+                "xml_harvard",
+                "html_with_citations",
+                "html_columbia",
+                "html_lawbox",
+                "html_anon_2020",
+                "html",
+                "plain_text",
+            ):
                 case_text = "".join(sub_opinion[content_type] for sub_opinion in sub_opinion_jsons)
                 if case_text:
                     case_text = case_text.replace('<?xml version="1.0" encoding="utf-8"?>', "")
