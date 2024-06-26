@@ -57,7 +57,11 @@
 
             {% if node.resource_type.lower == 'legaldocument' %}
               {% if node.resource.doc_class.lower == 'case' %}
-                {% include "includes/legal_doc_sources/cap_header.html" with legal_doc=node.resource %}
+                {% if node.resource.metadata.html_info.source == 'cap' %}
+                  {% include "includes/legal_doc_sources/cap_header.html" with legal_doc=node.resource %}
+                {% elif node.resource.metadata.html_info.source == 'court listener' %}
+                  {% include "includes/legal_doc_sources/court_listener_header.html" with legal_doc=node.resource %}
+                {% endif %}
               {% elif node.resource.doc_class.lower == 'code' %}
                 {% include "includes/legal_doc_sources/gpo_header.html" with legal_doc=node.resource %}
               {% endif %}

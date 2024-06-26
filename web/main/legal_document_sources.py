@@ -13,8 +13,13 @@ from dateutil import parser
 from django.conf import settings
 from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
 from pyquery import PyQuery
+from main.case_xml_converter import xml_to_html
 
-from main.utils import APICommunicationError, looks_like_case_law_link, looks_like_citation
+from main.utils import (
+    APICommunicationError,
+    looks_like_case_law_link,
+    looks_like_citation,
+)
 
 vs_check = re.compile(" [vV][sS]?[.]? ")
 
@@ -519,8 +524,8 @@ class USCodeGPO:
 class CourtListener:
     details = {
         "name": "CourtListener",
-        "short_description": "hello",
-        "long_description": "CourtListener searches millions of opinions across hundreds of jurisdictions",
+        "short_description": "CourtListener contains millions of legal opinions.",
+        "long_description": "CourtListener searches millions of opinions across hundreds of jurisdictions.",
         "link": settings.COURTLISTENER_BASE_URL,
         "search_regexes": [],
         "footnote_regexes": [],
@@ -532,11 +537,7 @@ class CourtListener:
         if not settings.COURTLISTENER_API_KEY:
             raise APICommunicationError("A CourtListener API key is required")
         try:
-            params = (
-                {"citation": search_params.q}
-                if looks_like_citation(search_params.q)
-                else {"q": search_params.q}
-            )
+            params = CourtListener.get_search_params(search_params)
             resp = requests.get(
                 f"{settings.COURTLISTENER_BASE_URL}/api/rest/v3/search",
                 params,
@@ -552,13 +553,16 @@ class CourtListener:
             results.append(
                 {
                     "fullName": r["caseName"],
-                    "shortName": r["caseName"],
-                    "fullCitations": ", ".join(r["citation"]),
-                    "shortCitations": ", ".join(r["citation"][:3])
-                    + ("..." if len(r["citation"]) > 3 else ""),
-                    "effectiveDate": parser.isoparse(r["dateFiled"]).strftime("%Y-%m-%d"),
+                    "shortName": truncate_name(r["caseName"]),
+                    "fullCitations": ", ".join(r["citation"]) if r["citation"] else "",
+                    "shortCitations": (
+                        ", ".join(r["citation"][:3]) + ("..." if len(r["citation"]) > 3 else "")
+                        if r["citation"]
+                        else ""
+                    ),
+                    "effectiveDate": parser.isoparse(r["dateFiled"][:25]).strftime("%Y-%m-%d"),
                     "url": f"{settings.COURTLISTENER_BASE_URL}{r['absolute_url']}",
-                    "id": r["id"],
+                    "id": r["cluster_id"],
                 }
             )
         return results
@@ -576,38 +580,132 @@ class CourtListener:
             )
             resp.raise_for_status()
             cluster = resp.json()
-            resp = requests.get(
-                f"{settings.COURTLISTENER_BASE_URL}/api/rest/v3/opinions/{id}/",
-                headers={"Authorization": f"Token {settings.COURTLISTENER_API_KEY}"},
-            )
-            resp.raise_for_status()
+            cluster["html_info"] = {"source": "court listener"}
+            cluster["sub_opinions"].sort(key=lambda url: int(url.split("/")[-2]))
 
-            opinion = resp.json()
+            sub_opinion_jsons = []
+            for opinion in cluster["sub_opinions"]:
+                sub_opinion_jsons.append(CourtListener.get_opinion_body(opinion))
+
+            text_source = ""
+            for content_type in (
+                "xml_harvard",
+                "html_with_citations",
+                "html_columbia",
+                "html_lawbox",
+                "html_anon_2020",
+                "html",
+                "plain_text",
+            ):
+                case_text = "".join(sub_opinion[content_type] for sub_opinion in sub_opinion_jsons)
+                if case_text:
+                    case_text = case_text.replace('<?xml version="1.0" encoding="utf-8"?>', "")
+                    text_source = content_type
+                    break
+
+            if not case_text:
+                msg = f"Case text not found for cluster {id}"
+                raise Exception(msg)
+
+            if text_source == "xml_harvard":
+                case_text = CourtListener.prepare_case_html(cluster, case_text)
+
+            cluster["html_info"]["source_field"] = text_source
+            additional_metadata = (CourtListener.get_additional_cluster_metadata(id))["results"][0]
 
         except requests.exceptions.HTTPError as e:
             msg = f"Failed call to {resp.request.url}: {e}\n{resp.content}"
             raise APICommunicationError(msg)
 
-        body = opinion["html"]
+        citations = [
+            f"{x.get('volume')} {x.get('reporter')} {x.get('page')}" for x in cluster["citations"]
+        ]
+
+        # https://www.courtlistener.com/help/api/rest/#case-names
+        case_name = cluster["case_name"] or cluster["case_name_full"][:10000]
+        cluster["court"] = {"name": additional_metadata.get("court")}
+        cluster["docket_number"] = additional_metadata.get("docketNumber")
+
         case = LegalDocument(
             source=legal_doc_source,
-            short_name=cluster["case_name"],
-            name=cluster["case_name"],
+            short_name=cluster.get("case_name"),
+            name=case_name,
             doc_class="Case",
-            citations=cluster["citations"],
-            jurisdiction="",
-            effective_date=cluster["date_filed"],
-            publication_date=cluster["date_filed"],
+            citations=citations,
+            jurisdiction=cluster.get("court_id"),
+            effective_date=parser.parse(cluster.get("date_filed")),
+            publication_date=parser.parse(cluster.get("date_modified")),
             updated_date=datetime.now(),
             source_ref=str(id),
-            content=body,
-            metadata=None,
+            content=case_text,
+            metadata=cluster,
         )
+
         return case
 
     @staticmethod
     def header_template(legal_document):
-        return "empty_header.html"
+        return "court_listener_header.html"
+
+    @staticmethod
+    def get_opinion_body(sub_opinion_url):
+        opinion_num = int(sub_opinion_url.split("/")[-2])
+        resp = requests.get(
+            f"{settings.COURTLISTENER_BASE_URL}/api/rest/v3/opinions/{opinion_num}/",
+            headers={"Authorization": f"Token {settings.COURTLISTENER_API_KEY}"},
+        )
+
+        resp.raise_for_status()
+        return resp.json()
+
+    @staticmethod
+    def prepare_case_html(cluster, opinions_xml):
+        xml_declaration = (
+            "<?xml version='1.0' encoding='utf-8'?>\n<casebody firstpage='0' lastpage='0'>"
+        )
+        case_xml = f"{xml_declaration}\n{cluster['headmatter']}\n{opinions_xml}</casebody>"
+        # 'mismatched br tag' and 'invalid attribute https:' error workarounds
+        case_xml = case_xml.replace("<br>", "").replace('https:=""', "")
+
+        try:
+            converted_case_html = xml_to_html(case_xml, str(cluster["id"]))
+        except Exception as e:
+            msg = f"Error converting xml to html for case {cluster['id']}: {e}"
+            raise Exception(msg)
+
+        return converted_case_html
+
+    @staticmethod
+    def get_search_params(search_params):
+        search_type_param = (
+            {"citation": search_params.q}
+            if looks_like_citation(search_params.q)
+            else {"q": search_params.q}
+        )
+        search_params = {
+            "filed_after": search_params.after_date,
+            "filed_before": search_params.before_date,
+            "court": search_params.jurisdiction,
+        }
+        params = {**search_type_param, **search_params}
+        return {k: params[k] for k in params.keys() if params[k] is not None}
+
+    @staticmethod
+    def get_additional_cluster_metadata(cluster_id):
+        """
+        Additional metadata about a cluster such as court and docket number are available in search endpoint
+        Instead of clusters endpoint
+        """
+        params = {"q": f"cluster_id:{cluster_id}"}
+
+        resp = requests.get(
+            f"{settings.COURTLISTENER_BASE_URL}/api/rest/v3/search",
+            params,
+            headers={"Authorization": f"Token {settings.COURTLISTENER_API_KEY}"},
+        )
+
+        resp.raise_for_status()
+        return resp.json()
 
 
 class LegacyNoSearch:
