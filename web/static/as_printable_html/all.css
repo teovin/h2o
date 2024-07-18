@@ -39,6 +39,11 @@
     margin: 0;
   }
 
+
+  pre {
+    white-space: pre-wrap;
+  }
+
   h1.casebook.title {
     font-size: 300%;
   }

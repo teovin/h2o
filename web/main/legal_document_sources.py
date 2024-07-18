@@ -599,7 +599,9 @@ class CourtListener:
             ):
                 case_text = "".join(sub_opinion[content_type] for sub_opinion in sub_opinion_jsons)
                 if case_text:
-                    case_text = case_text.replace('<?xml version="1.0" encoding="utf-8"?>', "")
+                    case_text = case_text.replace(
+                        '<?xml version="1.0" encoding="utf-8"?>', ""
+                    ).replace('href="/opinion', f'href="{settings.COURTLISTENER_BASE_URL}/opinion')
                     text_source = content_type
                     break
 
