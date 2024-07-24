@@ -634,7 +634,7 @@ class CourtListener:
             name=case_name,
             doc_class="Case",
             citations=citations,
-            jurisdiction=cluster.get("court_id"),
+            jurisdiction=additional_metadata.get("court_id"),
             effective_date=parser.parse(cluster.get("date_filed")),
             publication_date=parser.parse(cluster.get("date_modified")),
             updated_date=datetime.now(),

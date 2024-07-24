@@ -1,0 +1,12 @@
+body {
+  .announcement-banner {
+    background-color: $tinted-light-blue;
+    font-size: 14px;
+    padding: 10px 15px;
+    @include make-row();
+
+    p {
+      margin: 0px;
+    }
+  }
+}
