@@ -1,4 +1,5 @@
 from io import BytesIO
+import itertools
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -366,3 +367,35 @@ def test_annotated_export_invalid_clamped(annotations_factory):
     resource = annotations_factory("LegalDocument", input)[1]
     resource.annotations.update(global_end_offset=1000)  # move end offset past end of text
     assert annotated_content_for_export(resource) == expected
+
+
+def test_disallowed_images_stripped(rf, text_block_factory, resource_factory):
+    request = rf.get("/spoof-export-request")
+
+    disallowed_srcs = ["/etc/hosts", "../../images/foo", "http://example.com"]
+
+    allowed_srcs = [
+        f"http://{request.get_host()}/foo",
+        f"https://{request.get_host()}/foo",
+    ]
+
+    text = ""
+    for src in itertools.chain(disallowed_srcs, allowed_srcs):
+        text = text + f'<img src="{src}">'
+
+    text_block = text_block_factory(content=text)
+    resource = resource_factory(resource=text_block, resource_type="TextBlock")
+
+    # Establish that all images are present in the unaltered HTML
+    unaltered_html = resource.export(False, None, file_type="html")
+    for src in itertools.chain(disallowed_srcs, allowed_srcs):
+        assert src in unaltered_html
+
+    # Provide a spoofed `request` object which is a required argument for proper export of rich text
+    # https://github.com/harvard-lil/h2o/blob/dd67276720fe3a7af7e110da958448399a92399f/web/main/utils.py#L282
+    # Then, establish that only allowed image sources are present.
+    html = resource.export(False, None, file_type="html", export_options={"request": request})
+    for src in disallowed_srcs:
+        assert src not in html
+    for src in allowed_srcs:
+        assert src in html

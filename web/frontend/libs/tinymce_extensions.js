@@ -436,6 +436,10 @@ export function getInitConfig(selector, enhanced, code) {
     paste_remove_styles: true,
     paste_remove_styles_if_webkit: true,
     paste_strip_class_attributes: "all",
+    // image URLs
+    relative_urls: false,
+    convert_urls: false,
+    remove_script_host : false,
     media_dimensions: false,
     extended_valid_elements: extend_valid_elements,
     setup: (editor) => {
