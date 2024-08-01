@@ -6,7 +6,13 @@ body {
     @include make-row();
 
     p {
-      margin: 0px;
+      margin: 0;
+      a {
+        color: inherit;
+      }
+      a.standout-link {
+        color: $light-blue;
+      }
     }
   }
 }
