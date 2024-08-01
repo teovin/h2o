@@ -669,7 +669,7 @@ def export_via_aws_lambda(obj, html, file_type):
             if export_settings.get("function_arn"):
 
                 #
-                # Communicate with AWS via API, using the boto3 library
+                # Communicate with AWS via their API, using the boto3 library
                 #
 
                 lambda_client = boto3.client(
