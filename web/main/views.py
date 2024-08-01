@@ -2771,7 +2771,7 @@ def export(request: HttpRequest, node: Union[ContentNode, Casebook], file_type="
             file_type,
             export_options=export_options,
         )
-    except LambdaException as e:
+    except LambdaException:
         logger.exception(f"Export of node {node.id} failed.")
         return render(request, "export_error.html", {"casebook": node})
     if response_data is None:
