@@ -104,7 +104,7 @@ from .test.test_permissions_helpers import (
 )
 from .utils import (
     BadFiletypeError,
-    LambdaExportTooLarge,
+    LambdaException,
     StringFileResponse,
     fix_after_rails,
     get_link_title,
@@ -2771,11 +2771,12 @@ def export(request: HttpRequest, node: Union[ContentNode, Casebook], file_type="
             file_type,
             export_options=export_options,
         )
-    except LambdaExportTooLarge as too_large:
-        logger.warning(f"Export node({node.id}): " + too_large.args[0])
-        return render(request, "export_too_large.html", {"casebook": node})
+    except LambdaException as e:
+        logger.exception(f"Export of node {node.id} failed.")
+        return render(request, "export_error.html", {"casebook": node})
     if response_data is None:
         return render(request, "export_error.html", {"casebook": node})
+
     # return html
     if file_type == "html":
         return HttpResponse(response_data)

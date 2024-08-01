@@ -625,7 +625,7 @@ def get_link_title(url: str) -> str:
     return title[0].text
 
 
-class LambdaExportTooLarge(RuntimeError):
+class LambdaException(RuntimeError):
     pass
 
 
@@ -765,7 +765,7 @@ def export_via_aws_lambda(obj, html, file_type):
         except (BotoCoreError, BotoClientError, requests.RequestException, AssertionError) as e:
             if export_type == "Casebook":
                 obj.inc_export_fails()
-            raise Exception(f"AWS Lambda export failed: {str(e)}")
+            raise LambdaException(f"AWS Lambda export failed: {str(e)}")
 
         finally:
             # remove the source html from s3
