@@ -21,7 +21,7 @@ Add the following to `/etc/hosts`:
 
 Start up the Docker containers in the background:
 
-    $ docker-compose up -d
+    $ docker compose up -d
 
 The first time this runs it will build the Docker images, which
 may take several minutes. (After the first time, it should only take
@@ -33,7 +33,7 @@ If the H2O team has provided you with a pg_dump file, seed the database with dat
 
 Then log into the main Docker container:
 
-    $ docker-compose exec web bash
+    $ docker compose exec web bash
 
 (Commands from here on out that start with `#` are being run in Docker.)
 
@@ -78,9 +78,9 @@ commit the new assets locally, unless you want to use them immediately.
 
 When you are finished, spin down Docker containers by running:
 
-    $ docker-compose down
+    $ docker compose down
 
-Your database will persist and will load automatically the next time you run `docker-compose up -d`.
+Your database will persist and will load automatically the next time you run `docker compose up -d`.
 
 Or, you can clean up everything Docker-related, so you can start fresh, as with a new installation:
 

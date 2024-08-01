@@ -4,7 +4,7 @@
 
 In development, every Casebook's export will be routed to a local container that runs the lambda function in app.py.
 
-Run `docker-compose logs -f pandoc-lambda` to watch requests come in and review their metrics.
+Run `docker compose logs -f pandoc-lambda` to watch requests come in and review their metrics.
 
 ### ...locally, against a function already deployed to AWS Lambda
 
@@ -30,17 +30,17 @@ When the lambda returns, you should see its log printed to the console and shoul
 ### ...after code changes
 
 During local development, changes to `function/app.py` are synced to the running container and should be noticed immediately.
-If not, you can run `docker-compose restart pandoc-lambda` to restart the container.
+If not, you can run `docker compose restart pandoc-lambda` to restart the container.
 
 To deploy your changes to production you'll need to bundle the final version of your code into the Docker image and push it to AWS.
 
-Increment the image number in `docker-compose.yml` and re-run `docker-compose up -d`. That will produce a newly-tagged image that includes your code.
+Increment the image number in `docker-compose.yml` and re-run `docker compose up -d`. That will produce a newly-tagged image that includes your code.
 
 (We probably want to script this, adding it to our CI pipeline, similar to how CAP builds and pushes dev images to our registry.)
 
 ### ...with new python requirements, including `awslambdaric`
 
-Add new packages or pin versions in `requirements.in`. Then run `docker-compose exec pandoc-lambda pip-compile --allow-unsafe --generate-hashes`.
+Add new packages or pin versions in `requirements.in`. Then run `docker compose exec pandoc-lambda pip-compile --allow-unsafe --generate-hashes`.
 
 Increment the image number in `docker-compose.yml` to produce a new image.
 
@@ -50,11 +50,11 @@ To update a single (unpinned) package such as `awslambdaric` do the same thing, 
 
 ### ...with a new Lambda Runtime Interface Emulator
 
-Change the cache-buster hash in `docker-compose.yml`, update the Docker image number, and re-run `docker-compose up -d`. This process could be further scripted, like Perma's Google Chrome update is.
+Change the cache-buster hash in `docker-compose.yml`, update the Docker image number, and re-run `docker compose up -d`. This process could be further scripted, like Perma's Google Chrome update is.
 
 ### ...with a new version of pandoc
 
-Change the target version number in `Dockerfile`, increment the image number in `docker-compose.yml`, and re-run `docker-compose up -d`.
+Change the target version number in `Dockerfile`, increment the image number in `docker-compose.yml`, and re-run `docker compose up -d`.
 
 
 ## Deploying to AWS Lambda
