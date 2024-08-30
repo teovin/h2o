@@ -42,6 +42,7 @@ pytest-playwright
 django-debug-toolbar
 # code formatting
 black
+ipdb
 
 # static type checking
 mypy<1.2
