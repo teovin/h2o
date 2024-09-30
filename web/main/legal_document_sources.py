@@ -526,7 +526,7 @@ class CourtListener:
         "name": "CourtListener",
         "short_description": "CourtListener contains millions of legal opinions.",
         "long_description": "CourtListener searches millions of opinions across hundreds of jurisdictions.",
-        "link": settings.COURTLISTENER_BASE_URL,
+        "link": settings.COURTLISTENER_API_BASE_URL,
         "search_regexes": [],
         "footnote_regexes": [],
     }
@@ -539,7 +539,7 @@ class CourtListener:
         try:
             params = CourtListener.get_search_params(search_params)
             resp = requests.get(
-                f"{settings.COURTLISTENER_BASE_URL}/api/rest/v3/search",
+                f"{settings.COURTLISTENER_API_BASE_URL}search",
                 params,
                 headers={"Authorization": f"Token {settings.COURTLISTENER_API_KEY}"},
             )
@@ -575,7 +575,7 @@ class CourtListener:
             raise APICommunicationError("A CourtListener API key is required")
         try:
             resp = requests.get(
-                f"{settings.COURTLISTENER_BASE_URL}/api/rest/v3/clusters/{id}/",
+                f"{settings.COURTLISTENER_API_BASE_URL}clusters/{id}/",
                 headers={"Authorization": f"Token {settings.COURTLISTENER_API_KEY}"},
             )
             resp.raise_for_status()
@@ -653,7 +653,7 @@ class CourtListener:
     def get_opinion_body(sub_opinion_url):
         opinion_num = int(sub_opinion_url.split("/")[-2])
         resp = requests.get(
-            f"{settings.COURTLISTENER_BASE_URL}/api/rest/v3/opinions/{opinion_num}/",
+            f"{settings.COURTLISTENER_API_BASE_URL}opinions/{opinion_num}/",
             headers={"Authorization": f"Token {settings.COURTLISTENER_API_KEY}"},
         )
 
@@ -701,7 +701,7 @@ class CourtListener:
         params = {"q": f"cluster_id:{cluster_id}"}
 
         resp = requests.get(
-            f"{settings.COURTLISTENER_BASE_URL}/api/rest/v3/search",
+            f"{settings.COURTLISTENER_API_BASE_URL}search",
             params,
             headers={"Authorization": f"Token {settings.COURTLISTENER_API_KEY}"},
         )
